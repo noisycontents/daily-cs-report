@@ -1,0 +1,57 @@
+name: SM-CX Daily Stats Collection
+
+# 매일 한국시간 오전 10:20 (UTC 01:20) 자동 실행
+on:
+  schedule:
+    - cron: '20 1 * * *'  # UTC 01:20 = KST 10:20
+  workflow_dispatch:  # 수동 실행도 가능
+
+jobs:
+  collect-daily-stats:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 🛎️ 코드 체크아웃
+        uses: actions/checkout@v4
+        
+      - name: 🟢 Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: 📦 의존성 설치
+        run: npm ci
+        
+      - name: 🚀 SM-CX Daily Stats 수집 실행
+        env:
+          # WordPress OAuth2 설정
+          WP_BASE_URL: ${{ secrets.WP_BASE_URL }}
+          WP_CLIENT_ID: ${{ secrets.WP_CLIENT_ID }}
+          WP_CLIENT_SECRET: ${{ secrets.WP_CLIENT_SECRET }}
+          
+          # Google Analytics 4 설정
+          GA4_PROPERTY_ID: ${{ secrets.GA4_PROPERTY_ID }}
+          GOOGLE_CLIENT_EMAIL: ${{ secrets.GOOGLE_CLIENT_EMAIL }}
+          GOOGLE_PRIVATE_KEY: ${{ secrets.GOOGLE_PRIVATE_KEY }}
+          GOOGLE_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_DEVELOPER_TOKEN }}
+          GOOGLE_CUSTOMER_ID: ${{ secrets.GOOGLE_CUSTOMER_ID }}
+          GOOGLE_CLIENT_CUSTOMER_ID: ${{ secrets.GOOGLE_CLIENT_CUSTOMER_ID }}
+          
+          # Supabase 설정
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          echo "🚀 SM-CX Daily Stats 수집 시작 ($(date '+%Y-%m-%d %H:%M:%S %Z'))"
+          node scripts/fetch-and-push.js
+          echo "✅ SM-CX Daily Stats 수집 완료 ($(date '+%Y-%m-%d %H:%M:%S %Z'))"
+          
+      - name: 📝 실행 결과 요약
+        if: always()  # 성공/실패 관계없이 실행
+        run: |
+          if [ $? -eq 0 ]; then
+            echo "✅ SUCCESS: 데이터 수집 및 저장 성공"
+          else
+            echo "❌ FAILED: 데이터 수집 중 오류 발생"
+            exit 1
+          fi 
