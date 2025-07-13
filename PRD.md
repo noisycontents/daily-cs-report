@@ -140,7 +140,7 @@ jobs:
 ## 13. 네이밍 컨벤션
 
 * **리포지토리**: `sm-cx-supabase`
-* **스クリプト**: `fetch-and-push.php`
+* ****: `fetch-and-push.php`
 * **엔드포인트 플러그인**: `wp-content/plugins/sm-cx-stats-api`
 * **테이블**: `sm_cx_daily_stats`
 * **워크플로우 파일**: `.github/workflows/daily-stats-sync.yml`
