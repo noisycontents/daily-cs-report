@@ -1,9 +1,9 @@
 name: SM-CX Daily Stats Collection
 
-# 매일 한국시간 오전 10:20 (UTC 01:20) 자동 실행
+# 매일 한국시간 오전 8:00 (UTC 23:00) 자동 실행
 on:
   schedule:
-    - cron: '20 1 * * *'  # UTC 01:20 = KST 10:20
+    - cron: '0 23 * * *'  # UTC 23:00 = KST 08:00
   workflow_dispatch:  # 수동 실행도 가능
 
 jobs:
