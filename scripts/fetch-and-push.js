@@ -114,9 +114,17 @@ async function getTotalClicks(supabase, date) {
 async function main() {
   console.log('🚀 SM-CX Daily Stats 수집 시작...');
   
-  // 0) KST 기준 어제 날짜 계산 (App Script와 일치)
-  const targetDate = getYesterdayKST();
-  console.log(`📅 수집 대상 날짜: ${targetDate} (KST 기준)`);
+  // 0) 테스트용 날짜 설정 (비워두면 어제 날짜로 작동)
+  const testDates = []; // 테스트할 날짜들 (비워두면 어제 날짜 사용)
+  
+  let targetDate;
+  if (testDates.length > 0) {
+    targetDate = testDates[0]; // 첫 번째 테스트 날짜 사용
+    console.log(`📅 수집 대상 날짜: ${targetDate} (테스트 모드)`);
+  } else {
+    targetDate = getYesterdayKST(); // 어제 날짜 사용
+    console.log(`📅 수집 대상 날짜: ${targetDate} (KST 기준)`);
+  }
   
   // 1) OAuth2 토큰 발급
   console.log('🔐 OAuth2 토큰 발급 중...');
@@ -134,8 +142,14 @@ async function main() {
 
   // 2) WordPress API에서 통계 데이터 수집
   console.log('📊 WordPress 통계 데이터 수집 중...');
+  
+  // 테스트 모드일 때만 date 파라미터 추가
+  const apiUrl = testDates.length > 0 
+    ? `${process.env.WP_BASE_URL}/wp-json/sm-cx/v1/daily-stats?date=${targetDate}`
+    : `${process.env.WP_BASE_URL}/wp-json/sm-cx/v1/daily-stats`;
+  
   const statsRes = await axios.get(
-    `${process.env.WP_BASE_URL}/wp-json/sm-cx/v1/daily-stats?date=${targetDate}`,
+    apiUrl,
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
   const stats = statsRes.data;

@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: SM-CX Daily Stats API
- * Description: WordPress 일일 통계 API. 매출, 주문, 회원, 아이패드 매출 데이터를 제공.
+ * Description: WordPress 일일 통계 데이터를 제공.
  * Version:     2.0.0
  * Author:      Alex
  */
@@ -20,8 +20,16 @@ function sm_cx_check_permissions() {
 }
 
 function sm_cx_return_daily_stats() {
-  // 어제 날짜 구하기
-  $yesterday = date('Y-m-d', strtotime('-1 day'));
+  // 날짜 파라미터 확인 (fetch-and-push.js에서 전달)
+  $date_param = isset($_GET['date']) ? sanitize_text_field($_GET['date']) : '';
+  
+  if (!empty($date_param) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_param)) {
+    // 유효한 날짜 형식이면 사용
+    $yesterday = $date_param;
+  } else {
+    // 기본값: 어제 날짜
+    $yesterday = date('Y-m-d', strtotime('-1 day'));
+  }
   
   // 기본 데이터 구조 (Supabase 테이블에 맞게)
   $stats = [
@@ -127,12 +135,12 @@ function sm_cx_return_daily_stats() {
     // 회원가입 수 계산
     $signups = count_users_by_date($yesterday);
     
-    // 계산된 값들 설정
-    $stats['total_sales'] = (float)$total_sales;
+    // 계산된 값들 설정 (쿠폰 사용액 포함)
+    $stats['total_sales'] = (float)($total_sales + $coupon_usage);
     $stats['product_sales'] = (float)$product_sales; // 특정 SKU 계산은 별도 구현 필요
     $stats['refund_amount'] = (float)$refund_amount;
     $stats['coupon_usage'] = (float)$coupon_usage;
-    $stats['net_sales'] = (float)($total_sales - $refund_amount - $coupon_usage);
+    $stats['net_sales'] = (float)($total_sales - $refund_amount);
     $stats['order_count'] = (int)$order_count;
     $stats['new_customer_orders'] = (int)$new_customer_orders;
     $stats['returning_orders'] = (int)$returning_orders;
