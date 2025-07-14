@@ -14,6 +14,26 @@ const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
 const { BetaAnalyticsDataClient } = require('@google-analytics/data');
 
+/**
+ * KST 기준으로 어제 날짜를 'YYYY-MM-DD' 형식으로 반환
+ * App Script의 getYesterdayKST() 함수와 동일한 로직
+ */
+function getYesterdayKST() {
+  // 현재 시간을 KST로 변환
+  const nowKST = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Seoul"}));
+  
+  // KST 기준 어제 계산
+  const yesterdayKST = new Date(nowKST);
+  yesterdayKST.setDate(yesterdayKST.getDate() - 1);
+  
+  // YYYY-MM-DD 형식으로 반환
+  const year = yesterdayKST.getFullYear();
+  const month = String(yesterdayKST.getMonth() + 1).padStart(2, '0');
+  const day = String(yesterdayKST.getDate()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}`;
+}
+
 async function getGA4DAU(date) {
   try {
     // GA4 Service Account 인증 설정
@@ -94,6 +114,10 @@ async function getTotalClicks(supabase, date) {
 async function main() {
   console.log('🚀 SM-CX Daily Stats 수집 시작...');
   
+  // 0) KST 기준 어제 날짜 계산 (App Script와 일치)
+  const targetDate = getYesterdayKST();
+  console.log(`📅 수집 대상 날짜: ${targetDate} (KST 기준)`);
+  
   // 1) OAuth2 토큰 발급
   console.log('🔐 OAuth2 토큰 발급 중...');
   const tokenRes = await axios.post(
@@ -111,19 +135,19 @@ async function main() {
   // 2) WordPress API에서 통계 데이터 수집
   console.log('📊 WordPress 통계 데이터 수집 중...');
   const statsRes = await axios.get(
-    `${process.env.WP_BASE_URL}/wp-json/sm-cx/v1/daily-stats`,
+    `${process.env.WP_BASE_URL}/wp-json/sm-cx/v1/daily-stats?date=${targetDate}`,
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
   const stats = statsRes.data;
 
-  console.log(`📅 수집 날짜: ${stats.date}`);
+  console.log(`📅 수집 날짜: ${stats.date || targetDate}`);
   console.log(`💰 총 매출: ${stats.total_sales.toLocaleString()}원`);
   console.log(`📱 아이패드 매출: ${stats.product_sales.toLocaleString()}원`);
   console.log(`📦 총 주문: ${stats.order_count}건`);
   console.log(`👥 회원가입: ${stats.signups}명`);
 
-  // 3) GA4 DAU 데이터 가져오기
-  const dau = await getGA4DAU(stats.date);
+  // 3) GA4 DAU 데이터 가져오기 (명시적 날짜 사용)
+  const dau = await getGA4DAU(targetDate);
   
   // 4) Supabase 클라이언트 생성
   const supabase = createClient(
@@ -131,15 +155,16 @@ async function main() {
     process.env.SUPABASE_KEY
   );
   
-  // 5) Supabase에서 클릭 데이터 가져오기
-  const totalClicks = await getTotalClicks(supabase, stats.date);
+  // 5) Supabase에서 클릭 데이터 가져오기 (명시적 날짜 사용)
+  const totalClicks = await getTotalClicks(supabase, targetDate);
   
   // 6) signup_rate 계산
   const signupRate = totalClicks > 0 ? (stats.signups / totalClicks) * 100 : 0;
   
-  // 7) 모든 데이터 합치기
+  // 7) 모든 데이터 합치기 (명시적 날짜 사용)
   const finalStats = {
     ...stats,
+    date: targetDate,  // 명시적으로 targetDate 사용
     dau: dau,
     signup_rate: parseFloat(signupRate.toFixed(2))
   };

@@ -40,6 +40,7 @@ jobs:
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
           echo "🚀 SM-CX Daily Stats 수집 시작 ($(date '+%Y-%m-%d %H:%M:%S %Z'))"
+          echo "📅 KST 기준 현재 시간: $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M:%S %Z')"
           node scripts/fetch-and-push.js
           echo "✅ SM-CX Daily Stats 수집 완료 ($(date '+%Y-%m-%d %H:%M:%S %Z'))"
           
