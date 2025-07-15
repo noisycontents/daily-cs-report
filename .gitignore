@@ -37,3 +37,6 @@ logs/
 scripts/*.sql
 App Script/
 scripts/fetch-and-push-temp.js
+scripts/wp-data-download.js
+sm-cx-plugin/sm-cx-plugin.php
+sm-cx-plugin/sm-cx-user-export.php

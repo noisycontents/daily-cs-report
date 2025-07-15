@@ -16,7 +16,7 @@ const { BetaAnalyticsDataClient } = require('@google-analytics/data');
 
 /**
  * KST 기준으로 어제 날짜를 'YYYY-MM-DD' 형식으로 반환
- * App Script의 getYesterdayKST() 함수와 동일한 로직
+ * 서울시간 기준으로 정확한 어제 날짜를 계산
  */
 function getYesterdayKST() {
   // 현재 시간을 KST로 변환
@@ -31,7 +31,13 @@ function getYesterdayKST() {
   const month = String(yesterdayKST.getMonth() + 1).padStart(2, '0');
   const day = String(yesterdayKST.getDate()).padStart(2, '0');
   
-  return `${year}-${month}-${day}`;
+  const result = `${year}-${month}-${day}`;
+  
+  // 디버깅용 로그
+  console.log(`🕐 현재 KST: ${nowKST.toLocaleString("ko-KR", {timeZone: "Asia/Seoul"})}`);
+  console.log(`📅 계산된 어제 날짜: ${result}`);
+  
+  return result;
 }
 
 async function getGA4DAU(date) {
@@ -123,7 +129,8 @@ async function main() {
     console.log(`📅 수집 대상 날짜: ${targetDate} (테스트 모드)`);
   } else {
     targetDate = getYesterdayKST(); // 어제 날짜 사용
-    console.log(`📅 수집 대상 날짜: ${targetDate} (KST 기준)`);
+    console.log(`📅 수집 대상 날짜: ${targetDate} (KST 기준 어제)`);
+    console.log(`📅 현재 KST 시간: ${new Date().toLocaleString("ko-KR", {timeZone: "Asia/Seoul"})}`);
   }
   
   // 1) OAuth2 토큰 발급
@@ -143,10 +150,9 @@ async function main() {
   // 2) WordPress API에서 통계 데이터 수집
   console.log('📊 WordPress 통계 데이터 수집 중...');
   
-  // 테스트 모드일 때만 date 파라미터 추가
-  const apiUrl = testDates.length > 0 
-    ? `${process.env.WP_BASE_URL}/wp-json/sm-cx/v1/daily-stats?date=${targetDate}`
-    : `${process.env.WP_BASE_URL}/wp-json/sm-cx/v1/daily-stats`;
+  // 항상 명시적으로 날짜 파라미터 전달
+  const apiUrl = `${process.env.WP_BASE_URL}/wp-json/sm-cx/v1/daily-stats?date=${targetDate}`;
+  console.log(`📡 API 호출: ${apiUrl}`);
   
   const statsRes = await axios.get(
     apiUrl,
