@@ -166,16 +166,70 @@ function sm_cx_return_daily_stats() {
 function count_users_by_date($date) {
   global $wpdb;
   
-  $start_date = $date . ' 00:00:00';
-  $end_date = $date . ' 23:59:59';
+  // KST 시간대 설정 - sm-cx-user-export.php와 동일한 처리
+  $kst_timezone = new DateTimeZone('Asia/Seoul');
   
-  $count = $wpdb->get_var($wpdb->prepare(
-    "SELECT COUNT(*) FROM {$wpdb->users} 
+  // KST 기준으로 날짜 범위 계산
+  $start_kst = new DateTime($date . ' 00:00:00', $kst_timezone);
+  $end_kst = new DateTime($date . ' 23:59:59', $kst_timezone);
+  
+  // UTC로 변환해서 데이터베이스 쿼리용으로 사용
+  $start_utc = $start_kst->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+  $end_utc = $end_kst->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+  
+  // 기본 제외 사이트 (korean.studymini.com 항상 제외) - sm-cx-user-export.php와 동일
+  $exclude_sites = ['korean.studymini.com'];
+  
+  // 먼저 날짜 범위에 해당하는 모든 사용자 조회
+  $users = $wpdb->get_results($wpdb->prepare(
+    "SELECT ID, user_registered FROM {$wpdb->users} 
      WHERE user_registered >= %s 
      AND user_registered <= %s",
-    $start_date,
-    $end_date
+    $start_utc,
+    $end_utc
   ));
   
-  return (int)$count;
+  $filtered_count = 0;
+  
+  // 각 사용자에 대해 사이트 필터링 적용
+  foreach ($users as $user) {
+    // 사용자의 가입 사이트 URL 확인
+    $registered_site_url = get_user_meta($user->ID, 'registered_site_url', true);
+    
+    // registered_site_url이 없을 경우 다른 가능한 필드들 확인
+    if (empty($registered_site_url)) {
+      $site_url_keys = [
+        'registered_site_url',
+        'signup_site_url',
+        'registration_site',
+        'origin_site_url',
+        'user_site_url',
+        'site_origin'
+      ];
+      
+      foreach ($site_url_keys as $key) {
+        $site_url = get_user_meta($user->ID, $key, true);
+        if (!empty($site_url)) {
+          $registered_site_url = $site_url;
+          break;
+        }
+      }
+    }
+    
+    // 제외 사이트 확인
+    $should_exclude = false;
+    foreach ($exclude_sites as $exclude_site) {
+      if (!empty($registered_site_url) && strpos($registered_site_url, $exclude_site) !== false) {
+        $should_exclude = true;
+        break;
+      }
+    }
+    
+    // 제외 대상이 아니면 카운트에 포함
+    if (!$should_exclude) {
+      $filtered_count++;
+    }
+  }
+  
+  return (int)$filtered_count;
 }
