@@ -64,7 +64,7 @@ function sm_cx_return_daily_stats() {
     $new_customer_orders = 0;
     $returning_orders = 0;
     
-    // 주문 데이터 처리
+    // 주문 데이터 처리 (원래 로직 유지)
     foreach ($orders as $order) {
       $order_total = $order->get_total();
       
@@ -120,7 +120,7 @@ function sm_cx_return_daily_stats() {
       }
     }
     
-    // 환불액 계산
+    // 환불액 계산 (원래 로직 유지)
     $refunds = wc_get_orders([
       'type' => 'shop_order_refund',
       'date_created' => $yesterday . '...' . $yesterday . ' 23:59:59',
@@ -132,7 +132,7 @@ function sm_cx_return_daily_stats() {
       $refund_amount += abs($refund->get_total());
     }
     
-    // 회원가입 수 계산
+    // 회원가입 수 계산 (korean.studymini.com 제외)
     $signups = count_users_by_date($yesterday);
     
     // 계산된 값들 설정 (쿠폰 사용액 포함)
