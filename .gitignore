@@ -38,5 +38,6 @@ scripts/*.sql
 App Script/
 scripts/fetch-and-push-temp.js
 scripts/wp-data-download.js
+scripts/manual-update-stats.js
 sm-cx-plugin/
 PRD.md
