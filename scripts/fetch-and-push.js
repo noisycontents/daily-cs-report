@@ -3,6 +3,8 @@
  * 
  * 기능:
  * - WordPress API에서 매출, 주문, 회원 데이터 수집
+ *   ∟ total_sales: 취소 제외, 환불 포함한 총매출
+ *   ∟ net_sales: 환불 차감된 순매출
  * - GA4 API에서 DAU 데이터 수집
  * - Supabase에서 클릭 데이터 조회
  * - signup_rate 계산
@@ -161,7 +163,8 @@ async function main() {
   const stats = statsRes.data;
 
   console.log(`📅 수집 날짜: ${stats.date || targetDate}`);
-  console.log(`💰 총 매출: ${stats.total_sales.toLocaleString()}원`);
+  console.log(`💰 총 매출: ${stats.total_sales.toLocaleString()}원 (취소 제외, 환불 포함)`);
+  console.log(`💎 순 매출: ${stats.net_sales.toLocaleString()}원 (환불 차감 후)`);
   console.log(`📱 아이패드 매출: ${stats.product_sales.toLocaleString()}원`);
   console.log(`📦 총 주문: ${stats.order_count}건`);
   console.log(`👥 회원가입: ${stats.signups}명`);
@@ -181,10 +184,12 @@ async function main() {
   // 6) signup_rate 계산
   const signupRate = totalClicks > 0 ? (stats.signups / totalClicks) * 100 : 0;
   
-  // 7) 모든 데이터 합치기 (명시적 날짜 사용)
+  // 7) 모든 데이터 합치기 (총매출은 환불 포함, 취소만 제외)
   const finalStats = {
     ...stats,
-    date: targetDate,  // 명시적으로 targetDate 사용
+    // total_sales는 WordPress API 원래 값 사용 (취소 제외, 환불 포함)
+    // net_sales는 환불 차감된 순매출
+    date: targetDate,
     dau: dau,
     signup_rate: parseFloat(signupRate.toFixed(2))
   };
