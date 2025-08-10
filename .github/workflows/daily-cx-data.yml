@@ -1,4 +1,4 @@
-name: SM-CX Daily Stats Collection
+name: Daily CX Stats Collection (SM & DOK)
 
 # 매일 한국시간 오전 8:00 (UTC 23:00) 자동 실행
 on:
@@ -23,33 +23,69 @@ jobs:
       - name: 📦 의존성 설치
         run: npm ci
         
-      - name: 🚀 SM-CX Daily Stats 수집 실행
+      - name: 🚀 Daily CX Stats 수집 실행 (SM & DOK)
         env:
-          # WordPress OAuth2 설정
+          # SM-CX WordPress OAuth2 설정
           WP_BASE_URL: ${{ secrets.WP_BASE_URL }}
           WP_CLIENT_ID: ${{ secrets.WP_CLIENT_ID }}
           WP_CLIENT_SECRET: ${{ secrets.WP_CLIENT_SECRET }}
           
-          # Google Analytics 4 설정
+          # DOK-CX WordPress OAuth2 설정
+          DOK_WP_BASE_URL: ${{ secrets.DOK_WP_BASE_URL }}
+          DOK_WP_CLIENT_ID: ${{ secrets.DOK_WP_CLIENT_ID }}
+          DOK_WP_CLIENT_SECRET: ${{ secrets.DOK_WP_CLIENT_SECRET }}
+          
+          # SM-CX Google Analytics 4 설정
           GA4_PROPERTY_ID: ${{ secrets.GA4_PROPERTY_ID }}
           GOOGLE_CLIENT_EMAIL: ${{ secrets.GOOGLE_CLIENT_EMAIL }}
           GOOGLE_PRIVATE_KEY: ${{ secrets.GOOGLE_PRIVATE_KEY }}
           
-          # Supabase 설정
+          # DOK-CX Google Analytics 4 설정
+          DOK_GA4_PROPERTY_ID: ${{ secrets.DOK_GA4_PROPERTY_ID }}
+          DOK_GOOGLE_CLIENT_EMAIL: ${{ secrets.DOK_GOOGLE_CLIENT_EMAIL }}
+          DOK_GOOGLE_PRIVATE_KEY: ${{ secrets.DOK_GOOGLE_PRIVATE_KEY }}
+          
+          # Supabase 설정 (공통)
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
-          echo "🚀 SM-CX Daily Stats 수집 시작 ($(date '+%Y-%m-%d %H:%M:%S %Z'))"
+          echo "🚀 Daily CX Stats 수집 시작 ($(date '+%Y-%m-%d %H:%M:%S %Z'))"
           echo "📅 KST 기준 현재 시간: $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M:%S %Z')"
-          node scripts/fetch-and-push.js
-          echo "✅ SM-CX Daily Stats 수집 완료 ($(date '+%Y-%m-%d %H:%M:%S %Z'))"
           
-      - name: 📝 실행 결과 요약
+          echo ""
+          echo "=== 🏢 SM-CX 데이터 수집 시작 ==="
+          node scripts/fetch-and-push.js
+          SM_EXIT_CODE=$?
+          
+          echo ""
+          echo "=== 🇩🇪 DOK-CX 데이터 수집 시작 ==="
+          node scripts/fetch-and-push-dok.js
+          DOK_EXIT_CODE=$?
+          
+          echo ""
+          echo "=== 📊 수집 결과 요약 ==="
+          if [ $SM_EXIT_CODE -eq 0 ]; then
+            echo "✅ SM-CX: 성공"
+          else
+            echo "❌ SM-CX: 실패 (Exit Code: $SM_EXIT_CODE)"
+          fi
+          
+          if [ $DOK_EXIT_CODE -eq 0 ]; then
+            echo "✅ DOK-CX: 성공"
+          else
+            echo "❌ DOK-CX: 실패 (Exit Code: $DOK_EXIT_CODE)"
+          fi
+          
+          echo "✅ Daily CX Stats 수집 완료 ($(date '+%Y-%m-%d %H:%M:%S %Z'))"
+          
+          # 적어도 하나는 성공해야 함
+          if [ $SM_EXIT_CODE -ne 0 ] && [ $DOK_EXIT_CODE -ne 0 ]; then
+            echo "❌ 모든 브랜드 데이터 수집 실패"
+            exit 1
+          fi
+          
+      - name: 📝 워크플로우 완료
         if: always()  # 성공/실패 관계없이 실행
         run: |
-          if [ $? -eq 0 ]; then
-            echo "✅ SUCCESS: 데이터 수집 및 저장 성공"
-          else
-            echo "❌ FAILED: 데이터 수집 중 오류 발생"
-            exit 1
-          fi 
+          echo "📊 Daily CX Stats Collection 워크플로우 완료"
+          echo "📅 완료 시간: $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M:%S %Z')" 
