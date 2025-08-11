@@ -14,7 +14,6 @@
 require('dotenv').config();
 const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
-const { google } = require('googleapis');
 
 /**
  * KST 기준으로 어제 날짜를 'YYYY-MM-DD' 형식으로 반환
@@ -42,52 +41,51 @@ function getYesterdayKST() {
   return result;
 }
 
+// Refresh Token으로 Google OAuth2 Access Token 발급
+async function getGoogleAccessToken() {
+  const tokenUrl = 'https://oauth2.googleapis.com/token';
+  const params = new URLSearchParams({
+    client_id: process.env.GOOGLE_CLIENT_ID,
+    client_secret: process.env.GOOGLE_CLIENT_SECRET,
+    refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+    grant_type: 'refresh_token',
+  });
+
+  const { data } = await axios.post(tokenUrl, params, {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  });
+  return data.access_token;
+}
+
 async function getGA4DAU(date) {
   try {
-    // OAuth2 클라이언트 설정
-    const oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET
-    );
+    // Access Token 발급
+    const accessToken = await getGoogleAccessToken();
 
-    // Refresh Token 설정 (GA4 Analytics Data API 스코프 포함)
-    oauth2Client.setCredentials({
-      refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
-    });
+    // GA4 Property 경로 구성
+    const rawProperty = process.env.DOK_GA4_PROPERTY_ID;
+    const propertyPath = rawProperty && rawProperty.startsWith('properties/')
+      ? rawProperty
+      : `properties/${rawProperty}`;
 
-    // 필요한 스코프 설정
-    oauth2Client.scopes = ['https://www.googleapis.com/auth/analytics.readonly'];
-
-    // GA4 Data API 클라이언트 생성
-    const analyticsdata = google.analyticsdata({
-      version: 'v1beta',
-      auth: oauth2Client,
-    });
-
-    // GA4 Property ID
-    const propertyId = process.env.DOK_GA4_PROPERTY_ID;
-
-    // GA4 Data API 호출
-    const response = await analyticsdata.properties.runReport({
-      property: propertyId,
-      requestBody: {
+    // GA4 Data API 호출 (REST)
+    const url = `https://analyticsdata.googleapis.com/v1beta/${propertyPath}:runReport`;
+    const response = await axios.post(
+      url,
+      {
         dateRanges: [
-          {
-            startDate: date,
-            endDate: date,
-          },
+          { startDate: date, endDate: date },
         ],
         metrics: [
-          {
-            name: 'activeUsers',
-          },
+          { name: 'activeUsers' },
         ],
       },
-    });
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
 
     // DAU 추출
-    const dau = response.data.rows && response.data.rows.length > 0 
-      ? parseInt(response.data.rows[0].metricValues[0].value) 
+    const dau = response.data.rows && response.data.rows.length > 0
+      ? parseInt(response.data.rows[0].metricValues[0].value)
       : 0;
     
     console.log(`📈 GA4 DAU (${date}):`, dau);

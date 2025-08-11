@@ -47,6 +47,8 @@ jobs:
           # Supabase 설정 (공통)
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          # ADC(기본 자격증명) 비활성화를 위한 안전장치
+          GOOGLE_APPLICATION_CREDENTIALS: ""
         run: |
           echo "🚀 Daily CX Stats 수집 시작 ($(date '+%Y-%m-%d %H:%M:%S %Z'))"
           echo "📅 KST 기준 현재 시간: $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M:%S %Z')"
