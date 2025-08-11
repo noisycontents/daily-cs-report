@@ -3,17 +3,10 @@
  * Google 라이브러리 없이 순수 REST API만 사용
  */
 
-// Google ADC 완전 차단
-delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
-delete process.env.GOOGLE_CLOUD_PROJECT;
-delete process.env.GCLOUD_PROJECT;
-delete process.env.GOOGLE_CLIENT_EMAIL;
-delete process.env.GOOGLE_PRIVATE_KEY;
-
 const axios = require('axios');
 
-// Refresh Token으로 Google OAuth2 Access Token 발급
-async function getGoogleAccessToken() {
+// Refresh Token으로 OAuth2 Access Token 발급
+async function getAccessToken() {
   const tokenUrl = 'https://oauth2.googleapis.com/token';
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID,
@@ -31,7 +24,7 @@ async function getGoogleAccessToken() {
 async function getGA4DAU(date, propertyId) {
   try {
     // Access Token 발급
-    const accessToken = await getGoogleAccessToken();
+    const accessToken = await getAccessToken();
 
     // GA4 Property 경로 구성
     const propertyPath = propertyId && propertyId.startsWith('properties/')
