@@ -80,9 +80,21 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: ""
           GOOGLE_CLOUD_PROJECT: ""
           GCLOUD_PROJECT: ""
+          # 서비스 계정 관련 환경변수 강제 비활성화
+          GOOGLE_CLIENT_EMAIL: ""
+          GOOGLE_PRIVATE_KEY: ""
           # Node.js Google 라이브러리 비활성화
           GOOGLE_AUTH_DISABLE_SSL: "true"
         run: |
+          # Google 관련 환경변수 디버깅
+          echo "=== Google 환경변수 확인 ==="
+          echo "GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-'(not set)'}"
+          echo "GOOGLE_CLIENT_EMAIL: ${GOOGLE_CLIENT_EMAIL:-'(not set)'}"
+          echo "GOOGLE_PRIVATE_KEY: ${GOOGLE_PRIVATE_KEY:-(not set)}"
+          echo "GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-(not set)}"
+          echo "GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-(not set)}"
+          echo "GOOGLE_REFRESH_TOKEN: ${GOOGLE_REFRESH_TOKEN:-(not set)}"
+          
           # 실행 전 Google 라이브러리 재확인 및 제거
           echo "=== 실행 전 Google 라이브러리 재제거 ==="
           rm -rf node_modules/google-auth-library node_modules/google-gax node_modules/@google-* node_modules/googleapis 2>/dev/null || true
