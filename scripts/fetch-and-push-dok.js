@@ -12,6 +12,12 @@
  */
 
 require('dotenv').config();
+
+// Google ADC 완전 비활성화
+process.env.GOOGLE_APPLICATION_CREDENTIALS = '';
+process.env.GOOGLE_CLOUD_PROJECT = '';
+process.env.GCLOUD_PROJECT = '';
+
 const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
 
