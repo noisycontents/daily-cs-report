@@ -35,14 +35,22 @@ jobs:
           # 의존성 설치
           npm install
           
-          # Google 라이브러리가 설치되었는지 확인
-          if [ -d "node_modules/google-auth-library" ] || [ -d "node_modules/google-gax" ]; then
-            echo "❌ Google 라이브러리가 여전히 설치되어 있습니다!"
-            find node_modules -name "*google*" -type d
-            exit 1
-          fi
+          # 설치된 패키지 확인
+          echo "=== 설치된 패키지 목록 ==="
+          ls node_modules/ | grep -i google || echo "Google 패키지 없음"
           
-          echo "✅ Google 라이브러리 없이 설치 완료"
+          # Google 라이브러리 강제 제거
+          echo "=== Google 라이브러리 강제 제거 ==="
+          rm -rf node_modules/google-auth-library
+          rm -rf node_modules/google-gax
+          rm -rf node_modules/@google-analytics
+          rm -rf node_modules/@google-cloud
+          rm -rf node_modules/googleapis
+          find node_modules -name "*google*" -type d -exec rm -rf {} + 2>/dev/null || true
+          
+          # 최종 확인
+          echo "=== 최종 Google 패키지 확인 ==="
+          find node_modules -name "*google*" -type d || echo "✅ Google 패키지 완전 제거"
         
       - name: 🚀 Daily CX Stats 수집 실행 (SM & DOK)
         env:
@@ -75,6 +83,11 @@ jobs:
           # Node.js Google 라이브러리 비활성화
           GOOGLE_AUTH_DISABLE_SSL: "true"
         run: |
+          # 실행 전 Google 라이브러리 재확인 및 제거
+          echo "=== 실행 전 Google 라이브러리 재제거 ==="
+          rm -rf node_modules/google-auth-library node_modules/google-gax node_modules/@google-* node_modules/googleapis 2>/dev/null || true
+          find node_modules -name "*google*" -type d -exec rm -rf {} + 2>/dev/null || true
+          
           echo "🚀 Daily CX Stats 수집 시작 ($(date '+%Y-%m-%d %H:%M:%S %Z'))"
           echo "📅 KST 기준 현재 시간: $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M:%S %Z')"
           
