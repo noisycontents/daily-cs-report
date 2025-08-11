@@ -19,11 +19,30 @@ jobs:
         with:
           node-version: '18'
           
-      - name: 🧹 npm 캐시 정리 및 의존성 설치
+      - name: 🧹 완전한 환경 정리 및 의존성 설치
         run: |
+          # npm 완전 정리
           npm cache clean --force
-          rm -rf node_modules package-lock.json
+          rm -rf node_modules package-lock.json ~/.npm
+          
+          # Google 관련 환경변수 완전 제거
+          unset GOOGLE_APPLICATION_CREDENTIALS
+          unset GOOGLE_CLOUD_PROJECT
+          unset GCLOUD_PROJECT
+          unset GOOGLE_CLIENT_EMAIL
+          unset GOOGLE_PRIVATE_KEY
+          
+          # 의존성 설치
           npm install
+          
+          # Google 라이브러리가 설치되었는지 확인
+          if [ -d "node_modules/google-auth-library" ] || [ -d "node_modules/google-gax" ]; then
+            echo "❌ Google 라이브러리가 여전히 설치되어 있습니다!"
+            find node_modules -name "*google*" -type d
+            exit 1
+          fi
+          
+          echo "✅ Google 라이브러리 없이 설치 완료"
         
       - name: 🚀 Daily CX Stats 수집 실행 (SM & DOK)
         env:

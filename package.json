@@ -3,5 +3,12 @@
     "@supabase/supabase-js": "^2.50.5",
     "axios": "^1.10.0",
     "dotenv": "^17.2.0"
+  },
+  "overrides": {
+    "googleapis": false,
+    "@google-analytics/data": false,
+    "google-auth-library": false,
+    "google-gax": false,
+    "@google-cloud/common": false
   }
 }
