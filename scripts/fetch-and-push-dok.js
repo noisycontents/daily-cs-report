@@ -47,60 +47,50 @@ function getYesterdayKST() {
   return result;
 }
 
-// Refresh Token으로 Google OAuth2 Access Token 발급
-async function getGoogleAccessToken() {
-  const tokenUrl = 'https://oauth2.googleapis.com/token';
-  const params = new URLSearchParams({
-    client_id: process.env.GOOGLE_CLIENT_ID,
-    client_secret: process.env.GOOGLE_CLIENT_SECRET,
-    refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
-    grant_type: 'refresh_token',
-  });
-
-  const { data } = await axios.post(tokenUrl, params, {
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-  });
-  return data.access_token;
-}
-
+// 독립적인 GA4 클라이언트를 사용하여 DAU 데이터 수집
 async function getGA4DAU(date) {
-  try {
-    // Access Token 발급
-    const accessToken = await getGoogleAccessToken();
+  const { spawn } = require('child_process');
+  const path = require('path');
+  
+  return new Promise((resolve) => {
+    const ga4Client = spawn('node', [
+      path.join(__dirname, 'ga4-client.js'),
+      date,
+      process.env.DOK_GA4_PROPERTY_ID
+    ], {
+      env: {
+        ...process.env,
+        // Google ADC 완전 차단
+        GOOGLE_APPLICATION_CREDENTIALS: '',
+        GOOGLE_CLOUD_PROJECT: '',
+        GCLOUD_PROJECT: '',
+        GOOGLE_CLIENT_EMAIL: '',
+        GOOGLE_PRIVATE_KEY: ''
+      }
+    });
 
-    // GA4 Property 경로 구성
-    const rawProperty = process.env.DOK_GA4_PROPERTY_ID;
-    const propertyPath = rawProperty && rawProperty.startsWith('properties/')
-      ? rawProperty
-      : `properties/${rawProperty}`;
+    let output = '';
+    let errorOutput = '';
 
-    // GA4 Data API 호출 (REST)
-    const url = `https://analyticsdata.googleapis.com/v1beta/${propertyPath}:runReport`;
-    const response = await axios.post(
-      url,
-      {
-        dateRanges: [
-          { startDate: date, endDate: date },
-        ],
-        metrics: [
-          { name: 'activeUsers' },
-        ],
-      },
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
+    ga4Client.stdout.on('data', (data) => {
+      output += data.toString();
+    });
 
-    // DAU 추출
-    const dau = response.data.rows && response.data.rows.length > 0
-      ? parseInt(response.data.rows[0].metricValues[0].value)
-      : 0;
-    
-    console.log(`📈 GA4 DAU (${date}):`, dau);
-    return dau;
+    ga4Client.stderr.on('data', (data) => {
+      errorOutput += data.toString();
+    });
 
-  } catch (error) {
-    console.error('❌ GA4 API 오류:', error.message);
-    return 0; // 오류 시 0 반환
-  }
+    ga4Client.on('close', (code) => {
+      if (code === 0) {
+        const dau = parseInt(output.trim()) || 0;
+        console.log(`📈 GA4 DAU (${date}):`, dau);
+        resolve(dau);
+      } else {
+        console.error('❌ GA4 API 오류:', errorOutput);
+        resolve(0); // 오류 시 0 반환
+      }
+    });
+  });
 }
 
 async function getTotalClicks(supabase, date) {
