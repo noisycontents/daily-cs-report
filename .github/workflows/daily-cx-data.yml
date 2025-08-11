@@ -18,10 +18,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
           
-      - name: 📦 의존성 설치
-        run: npm ci
+      - name: 🧹 npm 캐시 정리 및 의존성 설치
+        run: |
+          npm cache clean --force
+          rm -rf node_modules package-lock.json
+          npm install
         
       - name: 🚀 Daily CX Stats 수집 실행 (SM & DOK)
         env:
