@@ -13,13 +13,27 @@
 
 require('dotenv').config();
 
-// Google ADC 완전 비활성화
-process.env.GOOGLE_APPLICATION_CREDENTIALS = '';
-process.env.GOOGLE_CLOUD_PROJECT = '';
-process.env.GCLOUD_PROJECT = '';
+// Google ADC 완전 비활성화 (require 전에 실행)
+delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+delete process.env.GOOGLE_CLOUD_PROJECT;
+delete process.env.GCLOUD_PROJECT;
+delete process.env.GOOGLE_CLIENT_EMAIL;
+delete process.env.GOOGLE_PRIVATE_KEY;
+
+// Google 라이브러리 로딩 완전 차단
+const originalRequire = require;
+require = function(id) {
+  if (id.includes('google') || id.includes('gax')) {
+    throw new Error(`Google library blocked: ${id}`);
+  }
+  return originalRequire.apply(this, arguments);
+};
 
 const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
+
+// require 복원
+require = originalRequire;
 
 /**
  * KST 기준으로 어제 날짜를 'YYYY-MM-DD' 형식으로 반환
