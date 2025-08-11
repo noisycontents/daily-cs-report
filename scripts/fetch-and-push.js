@@ -5,7 +5,7 @@
  * - WordPress API에서 매출, 주문, 회원 데이터 수집
  *   ∟ total_sales: 취소 제외, 환불 포함한 총매출
  *   ∟ net_sales: 환불 차감된 순매출
- * - GA4 API에서 DAU 데이터 수집
+ * - GA4 API에서 DAU 데이터 수집 (OAuth2 인증 사용)
  * - Supabase에서 클릭 데이터 조회
  * - signup_rate 계산
  * - 모든 데이터를 Supabase에 저장
@@ -14,7 +14,7 @@
 require('dotenv').config();
 const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
-const { BetaAnalyticsDataClient } = require('@google-analytics/data');
+const { google } = require('googleapis');
 
 /**
  * KST 기준으로 어제 날짜를 'YYYY-MM-DD' 형식으로 반환
@@ -44,36 +44,50 @@ function getYesterdayKST() {
 
 async function getGA4DAU(date) {
   try {
-    // GA4 Service Account 인증 설정
-    const analyticsDataClient = new BetaAnalyticsDataClient({
-      credentials: {
-        client_email: process.env.GOOGLE_CLIENT_EMAIL,
-        private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    // OAuth2 클라이언트 설정
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET
+    );
+
+    // Refresh Token 설정 (GA4 Analytics Data API 스코프 포함)
+    oauth2Client.setCredentials({
+      refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+    });
+
+    // 필요한 스코프 설정
+    oauth2Client.scopes = ['https://www.googleapis.com/auth/analytics.readonly'];
+
+    // GA4 Data API 클라이언트 생성
+    const analyticsdata = google.analyticsdata({
+      version: 'v1beta',
+      auth: oauth2Client,
+    });
+
+    // GA4 Property ID
+    const propertyId = process.env.GA4_PROPERTY_ID;
+
+    // GA4 Data API 호출
+    const response = await analyticsdata.properties.runReport({
+      property: propertyId,
+      requestBody: {
+        dateRanges: [
+          {
+            startDate: date,
+            endDate: date,
+          },
+        ],
+        metrics: [
+          {
+            name: 'activeUsers',
+          },
+        ],
       },
     });
 
-    // GA4 Property ID (환경변수에서 가져오거나 기본값 사용)
-    const propertyId = process.env.GA4_PROPERTY_ID || 'properties/YOUR_PROPERTY_ID';
-
-    // GA4 Data API 호출
-    const [response] = await analyticsDataClient.runReport({
-      property: propertyId,
-      dateRanges: [
-        {
-          startDate: date,
-          endDate: date,
-        },
-      ],
-      metrics: [
-        {
-          name: 'activeUsers',
-        },
-      ],
-    });
-
     // DAU 추출
-    const dau = response.rows && response.rows.length > 0 
-      ? parseInt(response.rows[0].metricValues[0].value) 
+    const dau = response.data.rows && response.data.rows.length > 0 
+      ? parseInt(response.data.rows[0].metricValues[0].value) 
       : 0;
     
     console.log(`📈 GA4 DAU (${date}):`, dau);

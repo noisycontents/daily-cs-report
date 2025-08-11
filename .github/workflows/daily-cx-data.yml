@@ -37,13 +37,12 @@ jobs:
           
           # SM-CX Google Analytics 4 설정
           GA4_PROPERTY_ID: ${{ secrets.GA4_PROPERTY_ID }}
-          GOOGLE_CLIENT_EMAIL: ${{ secrets.GOOGLE_CLIENT_EMAIL }}
-          GOOGLE_PRIVATE_KEY: ${{ secrets.GOOGLE_PRIVATE_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
           
           # DOK-CX Google Analytics 4 설정
           DOK_GA4_PROPERTY_ID: ${{ secrets.DOK_GA4_PROPERTY_ID }}
-          DOK_GOOGLE_CLIENT_EMAIL: ${{ secrets.DOK_GOOGLE_CLIENT_EMAIL }}
-          DOK_GOOGLE_PRIVATE_KEY: ${{ secrets.DOK_GOOGLE_PRIVATE_KEY }}
           
           # Supabase 설정 (공통)
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
