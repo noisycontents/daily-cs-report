@@ -41,6 +41,33 @@ function getYesterdayKST() {
   return result;
 }
 
+/**
+ * 대상 날짜 결정 함수 (우선순위 적용)
+ * 1. TARGET_DATE 환경변수 (백필용)
+ * 2. testDates 배열 (개발/테스트용)  
+ * 3. KST 어제 (기본값, GitHub Actions 포함)
+ */
+function getTargetDate(testDates = []) {
+  // 1순위: TARGET_DATE 환경변수 (백필용)
+  if (process.env.TARGET_DATE) {
+    console.log(`📅 수집 대상 날짜: ${process.env.TARGET_DATE} (TARGET_DATE 환경변수)`);
+    return process.env.TARGET_DATE;
+  }
+  
+  // 2순위: testDates 배열 (개발/테스트용)
+  if (testDates.length > 0) {
+    const targetDate = testDates[0]; // 첫 번째 테스트 날짜 사용
+    console.log(`📅 수집 대상 날짜: ${targetDate} (테스트 모드)`);
+    return targetDate;
+  }
+  
+  // 3순위: KST 기준 어제 (기본값, GitHub Actions 포함)
+  const targetDate = getYesterdayKST();
+  console.log(`📅 수집 대상 날짜: ${targetDate} (KST 기준 어제)`);
+  console.log(`📅 현재 KST 시간: ${new Date().toLocaleString("ko-KR", {timeZone: "Asia/Seoul"})}`);
+  return targetDate;
+}
+
 // GA4 Analytics Data API를 통해 DAU 데이터 수집 (독립 프로세스 사용)
 async function getGA4DAU(date) {
   const { spawn } = require('child_process');
@@ -116,18 +143,11 @@ async function getTotalClicks(supabase, date) {
 async function main() {
   console.log('🚀 SM-CX Daily Stats 수집 시작...');
   
-  // 0) 테스트용 날짜 설정 (비워두면 어제 날짜로 작동)
-  const testDates = []; // 테스트할 날짜들 (비워두면 어제 날짜 사용)
+  // 0) 테스트용 날짜 설정 (비워두면 환경변수나 어제 날짜로 작동)
+  const testDates = []; // 테스트할 날짜들 (비워두면 환경변수나 어제 날짜 사용)
   
-  let targetDate;
-  if (testDates.length > 0) {
-    targetDate = testDates[0]; // 첫 번째 테스트 날짜 사용
-    console.log(`📅 수집 대상 날짜: ${targetDate} (테스트 모드)`);
-  } else {
-    targetDate = getYesterdayKST(); // 어제 날짜 사용
-    console.log(`📅 수집 대상 날짜: ${targetDate} (KST 기준 어제)`);
-    console.log(`📅 현재 KST 시간: ${new Date().toLocaleString("ko-KR", {timeZone: "Asia/Seoul"})}`);
-  }
+  // 우선순위에 따른 대상 날짜 결정
+  const targetDate = getTargetDate(testDates);
   
   // 1) OAuth2 토큰 발급
   console.log('🔐 OAuth2 토큰 발급 중...');

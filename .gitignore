@@ -41,3 +41,4 @@ scripts/wp-data-download.js
 scripts/manual-update-stats.js
 sm-cx-plugin/
 PRD.md
+scripts/backfill-historical-data.js
